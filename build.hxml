@@ -1,0 +1,7 @@
+-swf PixelPlaneWar.swf
+-swf-version 11
+-D swf-header=480:800:60:000000
+-main Main
+-cp src
+-cp src/entities
+-cp src/scenes
