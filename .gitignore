@@ -2,3 +2,6 @@ haxe_*/
 haxe.tar.gz
 *.swf
 *.log
+artifact.zip
+artifact_output/
+html5/dist/

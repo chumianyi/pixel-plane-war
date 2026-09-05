@@ -1,4 +1,4 @@
-name: Build SWF
+name: Build Game
 
 on:
   push:
@@ -6,29 +6,66 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-swf:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Setup Haxe
         uses: krdlab/setup-haxe@v1
         with:
           haxe-version: 4.3.6
-
       - name: Build SWF
         run: |
           haxe build.hxml
-
       - name: Verify SWF
         run: |
           ls -la PixelPlaneWar.swf
-          file PixelPlaneWar.swf || true
           echo "SWF built successfully"
-
       - name: Upload SWF Artifact
         uses: actions/upload-artifact@v4
         with:
           name: PixelPlaneWar-swf
           path: PixelPlaneWar.swf
+          retention-days: 30
+
+  build-html5:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verify JS Syntax
+        run: |
+          node -e "
+          const fs = require('fs');
+          const content = fs.readFileSync('html5/src/index.html', 'utf8');
+          const m = content.match(/<script>([\s\S]*?)<\/script>/);
+          if (!m) { console.error('No script tag found'); process.exit(1); }
+          fs.writeFileSync('/tmp/game.js', m[1]);
+          console.log('JS extracted, length:', m[1].length);
+          "
+          node --check /tmp/game.js
+          echo "JS syntax OK"
+      - name: Verify HTML Structure
+        run: |
+          node -e "
+          const fs = require('fs');
+          const html = fs.readFileSync('html5/src/index.html', 'utf8');
+          if (!html.includes('<!DOCTYPE html>')) throw new Error('Missing DOCTYPE');
+          if (!html.includes('<canvas')) throw new Error('Missing canvas');
+          if (!html.includes('window.onload')) throw new Error('Missing entry point');
+          console.log('HTML structure OK, size:', html.length, 'bytes');
+          "
+      - name: Create Deliverable
+        run: |
+          mkdir -p html5/dist
+          cp html5/src/index.html html5/dist/PixelPlaneWar.html
+          ls -la html5/dist/
+      - name: Upload HTML5 Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PixelPlaneWar-html5
+          path: html5/dist/PixelPlaneWar.html
           retention-days: 30
